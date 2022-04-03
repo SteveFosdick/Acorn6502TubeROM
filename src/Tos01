@@ -30,7 +30,7 @@ $testing SETL   1 = 0    ; Always set to FALSE for release versions !
 
 VERHI   *       "1"
 VERMID  *       "2"
-VERLO   *       "0"
+VERLO   *       "1"
 
         MACRO
 $label  GENAD   $const
@@ -259,8 +259,9 @@ GOING   JSR     VSTRNG
  |
         JSR     RDCHW   ; Get startup instructions from the Host
  ]
-        CMPIM   &80     ; If startup = &80 then run the software at
-        BEQ     GOIT    ; dataptr (may be old or new code)
+        BPL		CLILOP  ; If b7 clear, enter command prompt loop.
+                        ; If b7 set then enter code at dataptr, if
+        JSR     GOIT    ; that returns, fall through to command prompt.
 
 ; .............................................................................
 ; Get cli commands and process them
