@@ -637,7 +637,7 @@ TUBADD ROUT
         R4BYTE                  ; Read R4 (Tube owner handle)
 
         CPYIM   5               ; Reserved RC
-        BEQ     TYARTI
+        BEQ     TYART2
 
         R4BYTE                  ; Ignore just one MSB of hi order addr
         R4BYTE                  ; Set up data ptr in &F6
@@ -653,7 +653,7 @@ TUBADD ROUT
         R4BYTE                  ; Read R4
 
         CPYIM   6               ; If not RC 6/7 then return
-        BCC     TYARTI
+        BCC     TYART2
         BNE     TRC7            ; C set here for RC 6/7
 
 ; .............................................................................
@@ -677,7 +677,7 @@ TRC6 ROUT ; 256 byte : Turbo -> Host
 ; .............................................................................
 
 TYARTI  ASL     REG0            ; Restore Turbo state, Y, A
-        PLA
+TYART2  PLA
         TAY
         LDA     IRQatmp
         RTI
