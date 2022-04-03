@@ -329,7 +329,7 @@ GOIT    PHP
         CMPIM   ")"
         BNE     NotRom
 
-; It is a language ROM. See if we are allowed to execute it
+; It is a ROM. See if we are allowed to execute it
 
         LDYIM   6
         LDAIY   execptr
@@ -342,23 +342,32 @@ GOIT    PHP
         ANDIM   CR
 
  [ $Turbo
-        BEQ     NotRom          ; 6502 ?
+        BEQ     IsLang          ; 6502 ?
         CMPIM   1               ; Turbo 6502 ?
         BNE     BadType
         RORA                    ; A := &80
-        BMI     NOTRM2          ; Forced
+        BMI     IsTurb          ; Forced
 
-NotRom  LDAIM   0               ; Turbo off
+IsLang  LDAIM   0               ; Turbo off
 
-NOTRM2  STA     REG0            ; Only get Turbo if 0,(C) and Turbo bit set
+IsTurb  STA     REG0            ; Only get Turbo if 0,(C) and Turbo bit set
 
         LDAIM   1
+        PLP
+        JMI     goaddr
+
+NotROM  LDAIM   0               ; Turbo off
+        STA     REG0
         PLP
         JMI     goaddr
  |
         BNE     BadType
 
-NotRom  LDAIM   1               ; Here if no 0,(C), or if right type
+        LDAIM   1               ; Here if no 0,(C), or if right type
+        PLP
+        JMI     goaddr
+
+NotRom  LDAIM   0
         PLP
         JMI     goaddr
  ]
