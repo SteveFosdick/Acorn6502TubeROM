@@ -260,7 +260,7 @@ GOING   JSR     VSTRNG
         JSR     RDCHW   ; Get startup instructions from the Host
  ]
         BPL		CLILOP  ; If b7 clear, enter command prompt loop.
-                        ; If b7 set then enter code at dataptr, if
+        CLC             ; If b7 set then enter code at dataptr, if
         JSR     GOIT    ; that returns, fall through to command prompt.
 
 ; .............................................................................
@@ -287,7 +287,8 @@ AckEscape
 ; +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; Execute a hunk of code. Save it's execution address and use as HIMEM
 
-GOIT    LDA     dataptr
+GOIT    PHP
+        LDA     dataptr
         STA     execptr
         STA     goaddr
         LDA     dataptr+1
@@ -352,11 +353,13 @@ NotRom  LDAIM   0               ; Turbo off
 NOTRM2  STA     REG0            ; Only get Turbo if 0,(C) and Turbo bit set
 
         LDAIM   1
+        PLP
         JMI     goaddr
  |
         BNE     BadType
 
 NotRom  LDAIM   1               ; Here if no 0,(C), or if right type
+        PLP
         JMI     goaddr
  ]
 
@@ -689,7 +692,7 @@ CLIRUN  LDA     execptr+1
         LDA     REG0
         PHA
  ]
-
+        SEC
         JSR     GOIT
 
  [ $Turbo
