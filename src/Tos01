@@ -285,35 +285,24 @@ AckEscape
         = &11, "Escape", 0
 
 ; +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-; Execute a hunk of code. Save it's execution address and use as HIMEM
+; Execute a hunk of code. First find if it is a language ROM.
 
-GOIT    PHP
-        LDA     dataptr
-        STA     execptr
-        STA     goaddr
-        LDA     dataptr+1
-        STA     execptr+1
-        STA     goaddr+1
+GOIT    PHP             ; Save carry (RESET vs CLI entry).
  [ $Turbo
         LDAIM   0
-        STA     Turbo+execptr
+        STA     Turbo+dataptr
+        STA     Turbo+brkptr
  ]
-
-; Find out if it is a language ROM (if it isn't execute it anyway)
-
         LDYIM   7
-        LDAIY   execptr
+        LDAIY   dataptr
         CLD
         CLC
-        ADC     execptr
-        STA     brkptr  ; If it is set brkptr to its copyright message
+        ADC     dataptr
+        STA     brkptr  ; Set brkptr to its copyright message
         LDAIM   0
-        ADC     execptr+1
+        ADC     dataptr+1
         STA     brkptr+1
         LDYIM   0
- [ $Turbo
-        STY     Turbo+brkptr
- ]
         LDAIY   brkptr
         BNE     NotRom
         INY
@@ -332,12 +321,12 @@ GOIT    PHP
 ; It is a ROM. See if we are allowed to execute it
 
         LDYIM   6
-        LDAIY   execptr
+        LDAIY   dataptr
         ANDIM   &4F
         CMPIM   &40     ; Language bit set ?
         BCC     NotLang
 
-; Code definition field correct for running on 6502 (=0) ?
+; Code definition field correct for running on 6502?
 
         ANDIM   CR
 
@@ -351,27 +340,25 @@ GOIT    PHP
 IsLang  LDAIM   0               ; Turbo off
 
 IsTurb  STA     REG0            ; Only get Turbo if 0,(C) and Turbo bit set
-
+ |
+        BNE     BadType         ; On non-Turbo only accept code type=0
+ ]
+        LDA     dataptr         ; Make this the current program to be
+        STA     execptr         ; re-entered on soft-break.
+        STA     goaddr
+        LDA     dataptr+1
+        STA     execptr+1
+        STA     goaddr+1
         LDAIM   1
         PLP
         JMI     goaddr
 
-NotROM  LDAIM   0               ; Turbo off
-        STA     REG0
-        PLP
-        JMI     goaddr
- |
-        BNE     BadType
-
-        LDAIM   1               ; Here if no 0,(C), or if right type
-        PLP
-        JMI     goaddr
-
-NotRom  LDAIM   0
-        PLP
-        JMI     goaddr
+NotROM  LDAIM   0
+ [ $Turbo
+        STA     REG0            ; Turbo off.
  ]
-
+        PLP
+        JMI     dataptr
 
 NotLang LDAIM   :LSB: DEFBRK
         STA     BRKVEC
