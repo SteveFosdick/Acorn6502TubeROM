@@ -352,7 +352,11 @@ GoNow
         BPL	SkpCur		; Only update the current program/HIMEM for
         STX	execptr		; programs with an EXEC address >= &8000.
         STY	execptr+1
-        STX	goaddr
+        CPYIM	&F8		; Only allow HIMEM < &F800
+        BCC	hmemok
+        LDXIM	:LSB: RESET
+        LDYIM	:MSB: RESET
+hmemok	STX	goaddr
         STY	goaddr+1
 SkpCur	PLP
         JMI     dataptr
@@ -376,6 +380,14 @@ BadType LDAIM   :LSB: DEFBRK
 ; TOS CLILOP error handling routine
 
 DEFBRK  ROUT
+	LDAIM	:LSB: RESET	; Set HIMEM to the bottom of the Tube Client.
+	STA	goaddr
+	LDAIM	:MSB: RESET
+	STA	goaddr+1
+	LDAIM	:LSB: CLILOP	; Make the CLI loop the current program for
+	STA	execptr		; re-entry on soft-Break.
+	LDAIM	:MSB: CLILOP
+	STA	execptr+1
 
         LDXIM   &FF
         TXS
