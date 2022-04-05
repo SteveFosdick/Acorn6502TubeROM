@@ -287,7 +287,7 @@ AckEscape
 ; +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ; Execute a hunk of code. First find if it is a language ROM.
 
-GOIT    PHP             ; Save carry (RESET vs CLI entry).
+GOIT    PHP             	; Save carry (RESET vs CLI entry).
  [ $Turbo
         LDAIM   0
         STA     Turbo+dataptr
@@ -298,32 +298,34 @@ GOIT    PHP             ; Save carry (RESET vs CLI entry).
         CLD
         CLC
         ADC     dataptr
-        STA     brkptr  ; Set brkptr to its copyright message
+        STA     brkptr  	; Set brkptr to its copyright message
         LDAIM   0
         ADC     dataptr+1
         STA     brkptr+1
         LDYIM   0
+        LDXIM	0		; For A=0 to be used on entry if no header.
         LDAIY   brkptr
-        BNE     NotRom
+        BNE     GoNow
         INY
         LDAIY   brkptr
         CMPIM   "("
-        BNE     NotRom
+        BNE     GoNow
         INY
         LDAIY   brkptr
         CMPIM   "C"
-        BNE     NotRom
+        BNE     GoNow
         INY
         LDAIY   brkptr
         CMPIM   ")"
-        BNE     NotRom
+        BNE     GoNow
 
 ; It is a ROM. See if we are allowed to execute it
 
+	INX			; For A=1 to be used on entry as it has a header.
         LDYIM   6
         LDAIY   dataptr
         ANDIM   &4F
-        CMPIM   &40     ; Language bit set ?
+        CMPIM   &40     	; Language bit set ?
         BCC     NotLang
 
 ; Code definition field correct for running on 6502?
@@ -331,33 +333,28 @@ GOIT    PHP             ; Save carry (RESET vs CLI entry).
         ANDIM   CR
 
  [ $Turbo
-        BEQ     IsLang          ; 6502 ?
+        BEQ     GoNow		; 6502 ?
         CMPIM   1               ; Turbo 6502 ?
         BNE     BadType
         RORA                    ; A := &80
         BMI     IsTurb          ; Forced
 
-IsLang  LDAIM   0               ; Turbo off
+GoNow  	LDAIM   0               ; Turbo off
 
 IsTurb  STA     REG0            ; Only get Turbo if 0,(C) and Turbo bit set
  |
-        BNE     BadType         ; On non-Turbo only accept code type=0
+        BNE     BadType
+GoNow
  ]
-        LDA     dataptr         ; Make this the current program to be
-        STA     execptr         ; re-entered on soft-break.
-        STA     goaddr
-        LDA     dataptr+1
-        STA     execptr+1
-        STA     goaddr+1
-        LDAIM   1
-        PLP
-        JMI     goaddr
-
-NotROM  LDAIM   0
- [ $Turbo
-        STA     REG0            ; Turbo off.
- ]
-        PLP
+        TXA			; Get value for A on entry.
+        LDX	dataptr
+        LDY	dataptr+1
+        BPL	SkpCur		; Only update the current program/HIMEM for
+        STX	execptr		; programs with an EXEC address >= &8000.
+        STY	execptr+1
+        STX	goaddr
+        STY	goaddr+1
+SkpCur	PLP
         JMI     dataptr
 
 NotLang LDAIM   :LSB: DEFBRK
